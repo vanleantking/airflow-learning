@@ -1,0 +1,71 @@
+version: '3'
+services:
+  airflow:
+    image: 'apache/airflow:2.5.1'
+    container_name: 'airflow'
+    volumes:
+      - ./docker/mongo/data:/data/db
+      - ./docker/mongo/init/:/docker-entrypoint-initdb.d/
+    restart: always
+    ports:
+      - '40001:27017'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+      MONGO_INITDB_DATABASE: admin
+    networks:
+      - ad-server
+  app:
+    container_name: 'gg-display-api'
+    volumes:
+      - ./data:/app/data
+    build:
+      context: .
+      dockerfile: './docker/gg/Dockerfile'
+    environment:
+      - MONGO_HOST='host.docker.internal'
+      - MONGO_PORT='40001'
+      - MONGO_USERNAME='adserver'
+      - MONGO_PASSWORD='adserver123'
+      - MONGO_DATABASE='adserver'
+    links:
+      - 'mongodb'
+    depends_on:
+      - 'mongodb'
+    networks:
+      - ad-server
+  fb_app:
+    container_name: 'fb-api-maketing'
+    build:
+      context: .
+      dockerfile: './docker/fb/Dockerfile'
+    environment:
+      - MONGO_HOST='host.docker.internal'
+      - MONGO_PORT='40001'
+      - MONGO_USERNAME='adserver'
+      - MONGO_PASSWORD='adserver123'
+      - MONGO_DATABASE='adserver'
+    links:
+      - 'mongodb'
+    depends_on:
+      - 'mongodb'
+    networks:
+      - ad-server
+  mongodb:
+    image: 'mongo:5.0'
+    container_name: 'mongo-adserver'
+    volumes:
+      - ./docker/mongo/data:/data/db
+      - ./docker/mongo/init/:/docker-entrypoint-initdb.d/
+    restart: always
+    ports:
+      - '40001:27017'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+      MONGO_INITDB_DATABASE: admin
+    networks:
+      - ad-server
+networks:
+  ad-server:
+    driver: bridge
